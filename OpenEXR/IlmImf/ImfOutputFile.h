@@ -51,6 +51,8 @@
 #include "ImfForward.h"
 #include "ImfExport.h"
 
+#include <vector>
+
 OPENEXR_IMF_INTERNAL_NAMESPACE_HEADER_ENTER
 
 
@@ -156,8 +158,13 @@ class OutputFile : public GenericOutputFile
     //-------------------------------------------------------------------
 
     IMF_EXPORT
-    void		writePixels (int numScanLines = 1);
+    void		writePixels (int numScanLines,
+                                     std::vector<void*> &ptr,
+                                     std::vector<size_t> &sizeInBytes);
 
+
+    IMF_EXPORT
+    void		writePixels (int numScanLines = 1);
 
     //------------------------------------------------------------------
     // Access to the current scan line:
@@ -243,6 +250,11 @@ class OutputFile : public GenericOutputFile
 
     IMF_EXPORT
     void		breakScanLine  (int y, int offset, int length, char c);
+
+
+    IMF_EXPORT
+    void		updateHeaderMD5Digests (const std::string &metadataMD5Digest,
+                                                const std::string &imageMD5Digest);
 
 
     struct Data;

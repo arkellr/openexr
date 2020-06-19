@@ -63,6 +63,9 @@
 #include "ImfInputPart.h"
 #include "ImfNamespace.h"
 #include "ImfOutputPartData.h"
+#include "ImfStringAttribute.h"
+
+#include <string.h>
 
 #include <string>
 #include <vector>
@@ -1013,7 +1016,9 @@ OutputFile::frameBuffer () const
 
 
 void	
-OutputFile::writePixels (int numScanLines)
+OutputFile::writePixels (int numScanLines, 
+                         std::vector<void*> &ptr,
+                         std::vector<size_t> &sizeInBytes)
 {
     try
     {
@@ -1142,6 +1147,21 @@ OutputFile::writePixels (int numScanLines)
                 // Write the line buffer
 		//
 
+                if (!ptr.empty() && ptr.size() == sizeInBytes.size())
+                {
+                    int i = writeBuffer->scanLineMin / _data->linesInBuffer +
+                         (writeBuffer->scanLineMin % _data->linesInBuffer ? 1 : 0);
+                    if (i < ptr.size())
+                    {
+                        memcpy(ptr[i], writeBuffer->dataPtr, writeBuffer->dataSize);
+                        sizeInBytes[i] = writeBuffer->dataSize;
+                    }
+                    else
+                    {
+                        throw IEX_NAMESPACE::ArgExc ("writePixels(): ptr[] and sizeInBytes[] out-of-range.");
+                    }
+                }
+
                 writePixelData (_data->_streamData, _data, writeBuffer);
                 nextWriteBuffer += step;
 
@@ -1234,6 +1254,15 @@ OutputFile::writePixels (int numScanLines)
                  "file \"" << fileName() << "\". " << e.what());
 	throw;
     }
+}
+
+
+void	
+OutputFile::writePixels (int numScanLines) 
+{
+    std::vector<void*> ptr;
+    std::vector<size_t> sizeInBytes;
+    writePixels(numScanLines, ptr, sizeInBytes);
 }
 
 
@@ -1402,5 +1431,43 @@ OutputFile::breakScanLine  (int y, int offset, int length, char c)
         _data->_streamData->os->write (&c, 1);
 }
 
+
+
+
+void
+OutputFile::updateHeaderMD5Digests (const std::string &metadataMD5Digest,
+                                    const std::string &imageMD5Digest)
+{
+    if (_data)
+    {
+        Lock lock(*_data->_streamData);
+
+        try
+        {
+            _data->header.insert("metadataMD5Digest", Imf::StringAttribute(metadataMD5Digest));
+            _data->header.insert("imageMD5Digest", Imf::StringAttribute(imageMD5Digest));
+
+            // Write header to the file.
+            Int64 savedPosition = _data->_streamData->os->tellp();
+            _data->_streamData->os->seekp(0);
+            writeMagicNumberAndVersionField(*_data->_streamData->os, _data->header);
+            if (_data->previewPosition !=_data->header.writeTo (*_data->_streamData->os))
+            {
+                THROW (IEX_NAMESPACE::ArgExc, "Cannot update header with no existing md5 digests attributes.");
+            }
+            if (_data->lineOffsetsPosition != writeLineOffsets (*_data->_streamData->os, _data->lineOffsets))
+            {
+                THROW (IEX_NAMESPACE::ArgExc, "Cannot update header with no existing md5 digests attributes.");
+            }
+            _data->_streamData->os->seekp(savedPosition);
+        }
+        catch (IEX_NAMESPACE::BaseExc &e)
+        {
+            REPLACE_EXC (e, "Cannot update header "
+                     "file \"" << fileName() << "\". " << e.what());
+            throw;
+        }
+    }
+}
 
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_EXIT
