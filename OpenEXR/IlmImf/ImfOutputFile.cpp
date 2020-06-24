@@ -1151,7 +1151,7 @@ OutputFile::writePixels (int numScanLines,
                 {
                     int i = writeBuffer->scanLineMin / _data->linesInBuffer +
                          (writeBuffer->scanLineMin % _data->linesInBuffer ? 1 : 0);
-                    if (i < ptr.size())
+                    if (i < (int) ptr.size())
                     {
                         memcpy(ptr[i], writeBuffer->dataPtr, writeBuffer->dataSize);
                         sizeInBytes[i] = writeBuffer->dataSize;
