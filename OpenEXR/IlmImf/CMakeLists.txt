@@ -114,6 +114,7 @@ openexr_define_library(IlmImf
     ImfIntAttribute.h
     ImfLineOrderAttribute.h
     ImfMatrixAttribute.h
+    ImfMisc.h
     ImfOpaqueAttribute.h
     ImfOutputFile.h
     ImfRgbaFile.h
@@ -124,6 +125,7 @@ openexr_define_library(IlmImf
     ImfLut.h
     ImfArray.h
     ImfCompression.h
+    ImfCompressor.h
     ImfLineOrder.h
     ImfName.h
     ImfPixelType.h
